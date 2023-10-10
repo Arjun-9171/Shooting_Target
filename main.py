@@ -1,23 +1,14 @@
-import pygame, random
-import asyncio
+import pygame, random, time
 
 pygame.init()
 pygame.mixer.init()
-screen = pygame.display.set_mode((580, 409))
+screen_width, screen_height = 580, 409
 
-clock = pygame.time.Clock()
+screen = pygame.display.set_mode((screen_width, screen_height))
+
+
 background = pygame.image.load("Assets/bg.jpg")
 
-async def main():
-  start = True
-  while start:
-    for event in pygame.event.get():
-      if event.type == pygame.QUIT:
-        start = False  
-    pygame.display.update()
-    screen.blit(background,(0,0))
-    start_button.draw(screen)
-  pygame.quit()
 
 class Button():
   def __init__(self,x,y,image,scale):
@@ -35,7 +26,7 @@ class Button():
         self.clicked=True
         action=True
         print("start clicked")
-        game_running()
+        
   
     if pygame.mouse.get_pressed()[0]==0:
       self.clicked=False
@@ -44,6 +35,8 @@ class Button():
         
 start_image = pygame.image.load("Assets/start.png")
 start_button = Button(228, 190, start_image, 0.4)
+#button_rect = start_button.get_rect(center = (screen_width/2, screen_height/2))
+
 
 class Explosion(pygame.sprite.Sprite):
   def __init__(self, x, y):
@@ -98,7 +91,18 @@ class Crosshair(pygame.sprite.Sprite):
     
   def update(self):
     self.rect.center=pygame.mouse.get_pos()
-    
+
+start_time = None
+total_time = 8
+
+in_menu = True
+
+font_color = "black"
+font_size = 50
+font = pygame.font.Font(None, font_size)
+play_option = font.render("play", True, font_color)
+play_rect = play_option.get_rect(center = (screen_width/2, screen_height/2))
+
 target_group = pygame.sprite.Group()
 for target in range(15):
   new_target = Target("Assets/target.png",random.randrange(10,590),random.randrange(10,390))
@@ -115,41 +119,57 @@ hitbox.shoot()
 
 explosion_group = pygame.sprite.Group()
 
+run = True
+while run:
+  for event in pygame.event.get():
+    if event.type == pygame.QUIT:
+      run = False  
+      exit() 
+    if event.type == pygame.MOUSEBUTTONDOWN:
+      pos = pygame.mouse.get_pos()
+      explosion = Explosion(pos[0], pos[1])
+      explosion_group.add(explosion)
+      print("shoot")
+      hitbox.shoot()
+      if in_menu:
+        if play_rect.collidepoint(event.pos):
+          in_menu = False
+          start_time = time.time()
+        
 
+    if in_menu: 
+      screen.blit(background, (0,0))
+      #start_button.draw(screen)
+      screen.blit(play_option, play_rect)
+      pygame.display.flip()
+    else: 
+      pygame.mouse.set_visible(False)
+      screen.blit(background, (0,0))
+      target_group.draw(screen)
+      crosshair_group.draw(screen)
+      crosshair_group.update()
+      hitbox_group.update()
+      explosion_group.draw(screen)
+      explosion_group.update()
+      elapsed_time = time.time() - start_time if start_time else 0
+      time_left = max(total_time - int(elapsed_time), 0)
+      timer_text = font.render("time left: " + str(time_left), True, "red")
+      screen.blit(timer_text, (10, 10))
 
-    
-def game_running():
-  run = True
-  while run:
-    pygame.mouse.set_visible(False)
-    for event in pygame.event.get():
-      if event.type == pygame.QUIT:
-        run = False  
-        exit() 
-      if event.type == pygame.MOUSEBUTTONDOWN:
-        pos = pygame.mouse.get_pos()
-        explosion = Explosion(pos[0], pos[1])
-        explosion_group.add(explosion)
-        print("shoot")
-        hitbox.shoot()
+      if time_left == 0:
+        game_over_text = "Try again!"
+        message_text = font.render(game_over_text, True, "white")
+        screen.blit(message_text, (290, 204))
+        pygame.display.flip()
+        time.sleep(7)
+        run = False
+      pygame.display.flip()
 
   
-    pygame.display.update()
-    screen.blit(background, (0,0))
-    target_group.draw(screen)
-    crosshair_group.draw(screen)
-    crosshair_group.update()
+pygame.quit()
 
-    hitbox_group.draw(screen)
-    hitbox_group.update()
+
+
   
-    explosion_group.draw(screen)
-    explosion_group.update()
-    
-  pygame.quit()
-asyncio.run(main())
-
-
-
 
 
